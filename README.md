@@ -15,12 +15,12 @@ $ touch ~/.ssh/config && chmod 600 ~/.ssh/config
 Добавляем в файл данные для соединения с сервером
 $cat >> ~/.ssh/config << EOF
 Host Bastion
-    HostName Bastion
+    HostName 178.154.228.57
     User appuser
     IdentityFile ~/.ssh/appuser
 
 Host someinternalhost
-    HostName someinternalhost
+    HostName 10.130.0.31
     User appuser
     IdentityFile ~/.ssh/appuser
     ProxyJump Bastion
@@ -28,3 +28,8 @@ EOF
 
 Осуществляем соединение
 $ ssh someinternalhost
+
+ДЗ № 4 стр 15
+
+bastion_IP = 178.154.228.57
+someinternalhost_IP = 10.130.0.31
