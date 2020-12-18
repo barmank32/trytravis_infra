@@ -1,7 +1,0 @@
-{
-    "folder_id": "w34234234234",
-    "source_image_family": "ubuntu-1604-lts",
-    "service_account_key_file": "key.json",
-    "subnet_id": "sdf4345dsvdfsf",
-    "zone": "ru-central1-a"
-}
