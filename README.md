@@ -51,3 +51,43 @@ $ yc compute instance create \
   --network-interface subnet-name=default-ru-central1-a,nat-ip-version=ipv4 \
   --metadata serial-port-enable=1 \
   --metadata-from-file user-data=./metadata.yaml
+
+ДЗ № 5
+
+Установка Packer на Ubuntu
+$ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+$ sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+$ sudo apt-get update && sudo apt-get install packer
+
+проверка установки
+$ packer -v
+
+Создание сервисного аккаунта для Packer
+
+смотрим параметры
+$ yc config list
+
+$ SVC_ACCT="<придумываем>"
+$ FOLDER_ID="<заменить на собственный>"
+$ yc iam service-account create --name $SVC_ACCT --folder-id $FOLDER_ID
+$ ACCT_ID=$(yc iam service-account get $SVC_ACCT | grep ^id | awk '{print $2}')
+$ yc resource-manager folder add-access-binding --id $FOLDER_ID --role editor --service-account-id $ACCT_ID
+Создаем ключ, он должен хранится за пределами репозитория
+$ yc iam key create --service-account-id $ACCT_ID --output key.json
+
+Создаем ubuntu16.json и variables.json для запекания образа
+
+Проверка на ошибки
+$ packer validate -var-file=variables.json ./ubuntu16.json
+
+Создаем образ
+$ packer build -var-file=variables.json ./ubuntu16.json
+
+Задание*
+Создаем immutable.json для запекания образа с приложением
+Создаем puma.service для Systemd
+
+Создаем образ
+$ packer build -var-file=variables.json ./immutable.json
+
+Запускаем create-reddit-vm.sh для создания ВМ
