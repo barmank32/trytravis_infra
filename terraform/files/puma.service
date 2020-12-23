@@ -1,0 +1,19 @@
+[Unit]
+Description=Puma Rails Server
+After=network.target
+Requires=mongod.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+
+WorkingDirectory=/home/ubuntu/reddit
+ExecStart=/usr/local/bin/puma
+
+
+TimeoutSec=15
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
