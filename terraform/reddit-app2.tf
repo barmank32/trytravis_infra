@@ -1,12 +1,6 @@
-provider "yandex" {
-  service_account_key_file = var.service_account_key_file
-  cloud_id                 = var.cloud_id
-  folder_id                = var.folder_id
-  zone                     = var.zone
-}
 
-resource "yandex_compute_instance" "app" {
-  name = "reddit-app"
+resource "yandex_compute_instance" "app2" {
+  name = "reddit-app2"
 
   zone = var.zone
 
@@ -35,7 +29,7 @@ resource "yandex_compute_instance" "app" {
 
   connection {
     type  = "ssh"
-    host  = yandex_compute_instance.app.network_interface.0.nat_ip_address
+    host  = yandex_compute_instance.app2.network_interface.0.nat_ip_address
     user  = "ubuntu"
     agent = false
     # путь до приватного ключа

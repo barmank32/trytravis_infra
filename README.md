@@ -91,3 +91,156 @@ $ packer build -var-file=variables.json ./ubuntu16.json
 $ packer build -var-file=variables.json ./immutable.json
 
 Запускаем create-reddit-vm.sh для создания ВМ
+
+
+# ДЗ № 6
+
+Установка Terraform на Ubuntu
+```bash
+$ sudo app install terraform=0.12.26
+```
+Заносим в .gitignore
+```
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform/
+```
+## Terraform init
+Создаем main.tf основной файл с кодом terraform
+Добавляем секцию Provider которая  позволит  Terraform  управлять  ресурсами через  API
+```
+provider "yandex" {
+  # yc config list
+  token     = "<OAuth или статический ключ сервисного аккаунта>"
+  cloud_id  = "<идентификатор облака>"
+  folder_id = "<идентификатор каталога>"
+  zone      = "ru-central1-a"
+}
+```
+Для загрузки модуля провайдера terraform выполняем
+```bash
+$ terraform init
+```
+## Terraform resource
+Дополняем main.tf ресурсом
+```
+resource "yandex_compute_instance" "app" {
+  name = "reddit-app"
+
+  resources {
+    cores  = 1
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      # yc compute image list
+      image_id = "fd8fg4r8mrvoq6q2ve76"
+    }
+  }
+
+  network_interface {
+    # yc vpc subnet list
+    subnet_id = "e9bem33uhju28r5i7pnu"
+    nat       = true
+  }
+}
+```
+Просмотреть вносимые изменения
+```bash
+$ terraform plan
+```
+Знак  "+"  перед  наименованием  ресурса  означает,  что  ресурс будет добавлен<br>
+Создаем ресурсы согласно плана
+```bash
+$ terraform apply
+-auto-approve для автоподтверждения
+```
+Для подключения к ВМ добавляем metadata с ключём
+```
+resource "yandex_compute_instance" "app" {
+...
+  metadata = {
+  ssh-keys = "ubuntu:${file("~/.ssh/yc.pub")}"
+  }
+...
+}
+```
+Удаляем и создаем заново ресурс
+``` bash
+$ terraform destroy
+$ terraform apply
+```
+## Terraform provisioner
+Provisioners  в  terraform  вызываются  в  момент  создания/удаления ресурса и позволяют выполнять команды на удаленной или локальной машине. Их используют для запуска инструментов управления конфигурацией или начальной настройки системы.
+```
+connection {
+  # параметры подключения
+  type = "ssh"
+  host = yandex_compute_instance.app.network_interface.0.nat_ip_address
+  user = "ubuntu"
+  agent = false
+  # путь до приватного ключа
+  private_key = file("~/.ssh/yc")
+  }
+provisioner "file" {
+  source = "files/puma.service"
+  destination = "/tmp/puma.service"
+}
+provisioner "remote-exec" {
+  script = "files/deploy.sh"
+}
+```
+## Input vars
+Создаем файл variables.tf с содержанием
+```
+variable cloud_id{
+  description = "Cloud"
+}
+variable folder_id {
+  description = "Folder"
+}
+variable zone {
+  description = "Zone"
+  # Значение по умолчанию
+  default = "ru-central1-a"
+}
+variable public_key_path {
+  # Описание переменной
+  description = "Path to the public key used for ssh access"
+}
+variable image_id {
+  description = "Disk image"
+}
+variable subnet_id{
+  description = "Subnet"
+}
+variable service_account_key_file{
+  description = "key .json"
+}
+```
+Теперь можем использовать input переменные в определении других ресурсов.Чтобы получить значение пользовательской переменной внутри ресурса используется синтаксис var.var_name.<br>
+Определим переменные используя специальный файл terraform.tfvars,из которого тераформ загружает значения автоматически при каждом запуске.
+```
+cloud_id = "b1g7mh55020i2hpup3cj"
+folder_id = "b1g4871feed9nkfl3dnu"
+zone = "ru-central1-a"
+image_id = "fd8mmtvlncqsvkhto5s6"
+public_key_path = "~/.ssh/yc.pub"
+subnet_id = "e9bem33uhju28r5i7pnu"
+service_account_key_file = "key.json"
+```
+
+## Output vars
+
+Создаем файл outputs.tf с содержанием
+```
+output "external_ip_address_app" {
+  value = yandex_compute_instance.app.network_interface.0.nat_ip_address
+  }
+```
+Используем команду
+```terraform refresh```, чтобы выходная переменная приняла значение.<br>
+Значение выходных переменных можно посмотреть, используя команду ```terraform output```.
