@@ -7,3 +7,4 @@ subnet_id                = "b1g0d9fnkcg0p56pie7g"
 service_account_key_file = "key.json"
 privat_key_path          = "~/.ssh/appuser"
 token                    = "b1g0d9fnkcg0p56pie7g-b1g0d9fnkcg0p56pie7g"
+app_count                = 2

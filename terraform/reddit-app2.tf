@@ -1,5 +1,5 @@
 
-resource "yandex_compute_instance" "app2" {
+/* resource "yandex_compute_instance" "app2" {
   name = "reddit-app2"
 
   zone = var.zone
@@ -46,3 +46,4 @@ resource "yandex_compute_instance" "app2" {
   }
 
 }
+ */

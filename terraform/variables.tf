@@ -29,3 +29,8 @@ variable privat_key_path {
   # Описание переменной
   description = "Path to the public key used for ssh access"
 }
+variable app_count {
+  description = "count"
+  # Значение по умолчанию
+  default = 1
+}

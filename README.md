@@ -99,7 +99,7 @@ $ packer build -var-file=variables.json ./immutable.json
 ```bash
 $ sudo app install terraform=0.12.26
 ```
-Заносим в .gitignore
+Заносим в `.gitignore`
 ```
 *.tfstate
 *.tfstate.*.backup
@@ -221,8 +221,8 @@ variable service_account_key_file{
   description = "key .json"
 }
 ```
-Теперь можем использовать input переменные в определении других ресурсов.Чтобы получить значение пользовательской переменной внутри ресурса используется синтаксис var.var_name.<br>
-Определим переменные используя специальный файл terraform.tfvars,из которого тераформ загружает значения автоматически при каждом запуске.
+Теперь можем использовать input переменные в определении других ресурсов.Чтобы получить значение пользовательской переменной внутри ресурса используется синтаксис `var.var_name`.<br>
+Определим переменные используя специальный файл `terraform.tfvars`, из которого тераформ загружает значения автоматически при каждом запуске.
 ```
 cloud_id = "b1g7mh55020i2hpup3cj"
 folder_id = "b1g4871feed9nkfl3dnu"
@@ -242,5 +242,60 @@ output "external_ip_address_app" {
   }
 ```
 Используем команду
-```terraform refresh```, чтобы выходная переменная приняла значение.<br>
-Значение выходных переменных можно посмотреть, используя команду ```terraform output```.
+`terraform refresh`, чтобы выходная переменная приняла значение.<br>
+Значение выходных переменных можно посмотреть, используя команду `terraform output`.
+
+## Задание*
+При настройке балансировщика как ниже, проблема возникает при горизонтальном масштабировании ресурсов.
+```
+# lb.tf
+
+resource "yandex_lb_target_group" "app_group" {
+  name      = "app-target-group"
+#   region_id = "ru-central1"
+
+  target {
+    subnet_id = var.subnet_id
+    address   = yandex_compute_instance.app.network_interface.0.ip_address
+  }
+
+    target {
+    subnet_id = var.subnet_id
+    address   = yandex_compute_instance.app2.network_interface.0.ip_address
+  }
+}
+
+resource "yandex_lb_network_load_balancer" "lb-app" {
+  name = "lb-app"
+
+  listener {
+    name = "my-listener"
+    port = 9292
+    external_address_spec {
+      ip_version = "ipv4"
+    }
+  }
+
+  attached_target_group {
+    target_group_id = yandex_lb_target_group.app_group.id
+    healthcheck {
+      name = "http"
+      http_options {
+        port = 9292
+        path = "/"
+      }
+    }
+  }
+}
+```
+```
+# outputs.tf
+output "external_ip_address_app2" {
+  value = yandex_compute_instance.app2.network_interface.0.nat_ip_address
+}
+
+output "balancer_ip_address" {
+  value = [for ex_ip in yandex_lb_network_load_balancer.lb-app.listener: ex_ip.external_address_spec].0
+}
+```
+## Задание**
