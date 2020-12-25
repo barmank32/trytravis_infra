@@ -246,7 +246,7 @@ output "external_ip_address_app" {
 Значение выходных переменных можно посмотреть, используя команду `terraform output`.
 
 ## Задание*
-При настройке балансировщика как ниже, проблема возникает при горизонтальном масштабировании ресурсов.
+При настройке балансировщика как ниже, проблема возникает при горизонтальном масштабировании ресурсов, из-зи того что приходиться копировать много однотипного кода.
 ```
 # lb.tf
 
@@ -299,3 +299,46 @@ output "balancer_ip_address" {
 }
 ```
 ## Задание**
+При использовании параметра count, наращивание мощности производится путем увеличения числа.
+```
+# lb.tf
+
+resource "yandex_lb_target_group" "app_group" {
+  name = "app-target-group"
+
+  dynamic "target" {
+    for_each = [for s in yandex_compute_instance.app : {
+      address = s.network_interface.0.ip_address
+      subnet_id = s.network_interface.0.subnet_id
+    }]
+
+    content {
+      subnet_id = target.value.subnet_id
+      address   = target.value.address
+    }
+  }
+}
+
+resource "yandex_lb_network_load_balancer" "lb-app" {
+  name = "lb-app"
+
+  listener {
+    name = "my-listener"
+    port = 9292
+    external_address_spec {
+      ip_version = "ipv4"
+    }
+  }
+
+  attached_target_group {
+    target_group_id = yandex_lb_target_group.app_group.id
+    healthcheck {
+      name = "http"
+      http_options {
+        port = 9292
+        path = "/"
+      }
+    }
+  }
+}
+```
