@@ -1,7 +1,7 @@
-resource "yandex_compute_instance" "app" {
-  name = "reddit-app"
+resource "yandex_compute_instance" "db" {
+  name = "reddit-db"
   labels = {
-    tags = "reddit-app"
+    tags = "reddit-db"
   }
 
   resources {
@@ -13,13 +13,13 @@ resource "yandex_compute_instance" "app" {
   boot_disk {
     initialize_params {
       # Указать id образа созданного в предыдущем домашнем задании
-      image_id = var.app_disk_image
+      image_id = var.db_disk_image
     }
   }
 
   network_interface {
     # Указан id подсети default-ru-central1-a
-    subnet_id = yandex_vpc_subnet.app-subnet.id
+    subnet_id = var.subnet_id
     nat       = true
   }
 
@@ -30,5 +30,4 @@ resource "yandex_compute_instance" "app" {
   scheduling_policy {
     preemptible = true
   }
-
 }
