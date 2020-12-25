@@ -1,4 +1,7 @@
 #!/bin/bash -e
+echo "Update"
+	apt-get update -y
+	sleep 10
 
 echo "Fix apt https"
 	apt-get install -y apt-transport-https ca-certificates
