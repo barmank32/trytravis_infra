@@ -4,10 +4,11 @@ resource "yandex_lb_target_group" "app_group" {
   dynamic "target" {
     for_each = [for s in yandex_compute_instance.app : {
       address = s.network_interface.0.ip_address
+      subnet_id = s.network_interface.0.subnet_id
     }]
 
     content {
-      subnet_id = var.subnet_id
+      subnet_id = target.value.subnet_id
       address   = target.value.address
     }
   }

@@ -7,6 +7,7 @@ provider "yandex" {
 
 resource "yandex_compute_instance" "app" {
   name  = "reddit-app"
+
   count = var.app_count
 
   zone = var.zone
