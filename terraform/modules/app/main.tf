@@ -52,8 +52,15 @@ resource "yandex_compute_instance" "app" {
 }
 
 resource "local_file" "generate_service" {
+
   content = templatefile("${path.module}/puma.tpl", {
     addrs = var.db_url,
   })
   filename = "${path.module}/puma.service"
+
+    provisioner "local-exec" {
+    when = destroy
+    command = "mv ${path.module}/puma.service ${path.module}/puma.service.bak"
+    on_failure = continue
+  }
 }
