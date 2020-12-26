@@ -343,3 +343,99 @@ resource "yandex_lb_network_load_balancer" "lb-app" {
 }
 ```
 # ДЗ № 7
+## VPC Network
+Определяем ресурсы `yandex_vpc_network` и `yandex_vpc_subnet` в конфигурационном файле `main.tf`.
+```
+resource "yandex_vpc_network" "app-network" {
+  name = "reddit-app-network"
+}
+
+resource "yandex_vpc_subnet" "app-subnet" {
+  name           = "reddit-app-subnet"
+  zone           = "ru-central1-a"
+  network_id     = "${yandex_vpc_network.app-network.id}"
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+```
+Переопределяем интерфейс ВМ на новый ресурс
+```
+  network_interface {
+    subnet_id = yandex_vpc_subnet.app-subnet.id
+    nat = true
+  }
+```
+## Несколько VM
+Создаем с помощью Packer два образа один с Ruby другой с MangoDB.<br>
+Разделяем main.tf на на несколько конфигов.
+- main.tf - остается секция provider
+- app.tf - ВМ с образом Ruby
+- db.tf - ВМ с образом MongoDB
+- vpc.tf - ресурс Yandex VPC
+
+Проверяем `terraform apply`.
+## Модули
+Модули используются для шаблонизации ВМ с разных проектах.<br>
+Создаем папки для модулей
+- modules/db/
+- modules/app/
+
+Со следующей структурой
+- main.tf - описание ресурса ВМ
+- variables.tf - input vars
+- outputs.tf - output vars
+
+Приведем основной файлы к следующему виду
+```
+# main.tf
+provider "yandex" {
+  service_account_key_file = var.service_account_key_file
+  cloud_id  = var.cloud_id
+  folder_id = var.folder_id
+  zone      = var.zone
+}
+module "app" {
+  source          = "./modules/app"
+  public_key_path = var.public_key_path
+  app_disk_image  = var.app_disk_image
+  subnet_id       = var.subnet_id
+}
+
+module "db" {
+  source          = "./modules/db"
+  public_key_path = var.public_key_path
+  db_disk_image   = var.db_disk_image
+  subnet_id       = var.subnet_id
+}
+```
+```
+# outputs.tf
+output "external_ip_address_app" {
+  value = module.app.external_ip_address_app
+}
+output "external_ip_address_db" {
+  value = module.db.external_ip_address_db
+}
+```
+Файлы `db.tf` `app.tf` `vpc.tf` больше не нужны.<br>
+Проверяем `terraform plan` и применяем `terraform apply` конфигурацию.
+## Задание*
+Для хранения tfstate информации в Yandex Object Storage.
+```
+# backend.tf
+terraform {
+  backend "s3" {
+    endpoint = "storage.yandexcloud.net"
+    bucket   = "terraform-object-storage-barmank32"
+    region   = "us-east-1"
+    key      = "prod.tfstate"
+
+    access_key = "Yr_cAJ5scJDdtYhwhLOe"
+    secret_key = "PtNIbknOxAkM7iaLrnzKdqTRnJX5MUQjmSrUaH5q"
+
+    skip_region_validation      = true
+    skip_credentials_validation = true
+  }
+}
+```
+Для работы блокировки необходимо использовать DynamoDB которая на Yandex тока реализовывается в виде Yandex Database. Опции отвечающие за блокировку `dynamodb_endpoint` и `dynamodb_table`.
+## Задание**
