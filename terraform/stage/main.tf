@@ -8,14 +8,17 @@ provider "yandex" {
 module "app" {
   source          = "../modules/app"
   public_key_path = var.public_key_path
+  privat_key_path = var.privat_key_path
   app_disk_image  = var.app_disk_image
   subnet_id       = var.subnet_id
+  db_url          = module.db.external_ip_address_db
   label           = "stage"
 }
 
 module "db" {
   source          = "../modules/db"
   public_key_path = var.public_key_path
+  privat_key_path = var.privat_key_path
   db_disk_image   = var.db_disk_image
   subnet_id       = var.subnet_id
   label           = "stage"

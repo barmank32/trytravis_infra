@@ -27,6 +27,22 @@ resource "yandex_compute_instance" "db" {
     ssh-keys = "ubuntu:${file(var.public_key_path)}"
   }
 
+  connection {
+    type  = "ssh"
+    host  = self.network_interface.0.nat_ip_address
+    user  = "ubuntu"
+    agent = false
+    # путь до приватного ключа
+    private_key = file(var.privat_key_path)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf",
+      "sudo systemctl restart mongod"
+    ]
+  }
+
   scheduling_policy {
     preemptible = true
   }

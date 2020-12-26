@@ -27,8 +27,33 @@ resource "yandex_compute_instance" "app" {
     ssh-keys = "ubuntu:${file(var.public_key_path)}"
   }
 
+  connection {
+    type  = "ssh"
+    host  = self.network_interface.0.nat_ip_address
+    user  = "ubuntu"
+    agent = false
+    # путь до приватного ключа
+    private_key = file(var.privat_key_path)
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/puma.service"
+    destination = "/tmp/puma.service"
+  }
+
+  provisioner "remote-exec" {
+    script = "../files/deploy.sh"
+  }
+
   scheduling_policy {
     preemptible = true
   }
+  depends_on = [local_file.generate_service]
+}
 
+resource "local_file" "generate_service" {
+  content = templatefile("${path.module}/puma.tpl", {
+    addrs = var.db_url,
+  })
+  filename = "${path.module}/puma.service"
 }

@@ -439,3 +439,56 @@ terraform {
 ```
 Для работы блокировки необходимо использовать DynamoDB которая на Yandex тока реализовывается в виде Yandex Database. Опции отвечающие за блокировку `dynamodb_endpoint` и `dynamodb_table`.
 ## Задание**
+Для подключения к БД вносим следующие исправления
+```
+# module app
+...
+connection {
+    type  = "ssh"
+    host  = self.network_interface.0.nat_ip_address
+    user  = "ubuntu"
+    agent = false
+    # путь до приватного ключа
+    private_key = file(var.privat_key_path)
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/puma.service"
+    destination = "/tmp/puma.service"
+  }
+
+  provisioner "remote-exec" {
+    script = "../files/deploy.sh"
+  }
+  depends_on = [local_file.generate_service]
+  ...
+  resource "local_file" "generate_service" {
+  content = templatefile("${path.module}/puma.tpl", {
+    addrs = var.db_url,
+  })
+  filename = "${path.module}/puma.service"
+}
+```
+Создается `puma.service` имеющий строчку `Environment="DATABASE_URL=${addrs}"` для указания IP DB через окружение.
+```
+# module db
+...
+  connection {
+    type  = "ssh"
+    host  = self.network_interface.0.nat_ip_address
+    user  = "ubuntu"
+    agent = false
+    # путь до приватного ключа
+    private_key = file(var.privat_key_path)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf",
+      "sudo systemctl restart mongod"
+    ]
+  }
+...
+```
+Изменяется конфигурационные файл для того чтобы сервис слушал подключения ч внешних адресов.<br>
+Незабываем прокидывать соответствующие Variables.
