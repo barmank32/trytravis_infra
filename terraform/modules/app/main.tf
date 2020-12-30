@@ -1,16 +1,8 @@
-provider "yandex" {
-  service_account_key_file = var.service_account_key_file
-  cloud_id                 = var.cloud_id
-  folder_id                = var.folder_id
-  zone                     = var.zone
-}
-
 resource "yandex_compute_instance" "app" {
-  name  = "reddit-app"
-
-  count = var.app_count
-
-  zone = var.zone
+  name = "reddit-app-${var.label}"
+  labels = {
+    tags = "reddit-app-${var.label}"
+  }
 
   resources {
     cores         = 2
@@ -21,7 +13,7 @@ resource "yandex_compute_instance" "app" {
   boot_disk {
     initialize_params {
       # Указать id образа созданного в предыдущем домашнем задании
-      image_id = var.image_id
+      image_id = var.app_disk_image
     }
   }
 
@@ -45,12 +37,30 @@ resource "yandex_compute_instance" "app" {
   }
 
   provisioner "file" {
-    source      = "files/puma.service"
+    source      = "${path.module}/puma.service"
     destination = "/tmp/puma.service"
   }
 
   provisioner "remote-exec" {
-    script = "files/deploy.sh"
+    script = "../files/deploy.sh"
   }
 
+  scheduling_policy {
+    preemptible = true
+  }
+  depends_on = [local_file.generate_service]
+}
+
+resource "local_file" "generate_service" {
+
+  content = templatefile("${path.module}/puma.tpl", {
+    addrs = var.db_url,
+  })
+  filename = "${path.module}/puma.service"
+
+    provisioner "local-exec" {
+    when = destroy
+    command = "mv ${path.module}/puma.service ${path.module}/puma.service.bak"
+    on_failure = continue
+  }
 }
