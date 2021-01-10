@@ -1,4 +1,4 @@
-terraform {
+/* terraform {
   backend "s3" {
     endpoint = "storage.yandexcloud.net"
     bucket   = "terraform-object-storage-barmank32"
@@ -11,4 +11,4 @@ terraform {
     skip_region_validation      = true
     skip_credentials_validation = true
   }
-}
+} */

@@ -492,3 +492,63 @@ connection {
 ```
 Изменяется конфигурационные файл для того чтобы сервис слушал подключения ч внешних адресов.<br>
 Незабываем прокидывать соответствующие Variables.
+# ДЗ № 8
+## Ansible
+Установка Ansible
+```
+pip install ansible>=2.4
+```
+Создаем ВМ с помощью Terraform `terraform apply` из папки stage.<br>
+Создадим инвентори файл ansible/inventory.
+```
+appserver ansible_host=35.195.186.154 ansible_user=appuser ansible_private_key_file=~/.ssh/appuser
+```
+проверка сервера
+```
+$ ansible appserver -i ./inventory -m ping
+```
+## ansible.cfg
+Укажем значения по умолчанию для работы Ansible.
+```
+# ansible/ansible.cfg
+[defaults]
+inventory = ./inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+host_key_checking = False
+retry_files_enabled = False
+```
+Теперь можно удалить лишние параметры из инвентори файла.
+## Выполнение команд
+Выполнить команду на сервере можно с помощью модуля `command`, он выполняет команды не используя Shell.
+```
+$ ansible app -m command -a 'ruby -v'
+```
+Выполнить команду на сервере можно с помощью модуля `shell`.
+```
+$ ansible app -m shell -a 'ruby -v; bundler -v'
+```
+Модуль `systemd` предназначен для управления сервисами.
+```
+$ ansible db -m systemd -a name=mongod
+```
+Или еще лучше с помощью модуля `service`, который болееуниверсален  и  будет  работать  и  в  более  старых  ОС.
+```
+$ ansible db -m service -a name=mongod
+```
+Модуль git  для  клонирования  репозитория  с приложением на app сервер.
+```
+ansible app -m git -a 'repo=https://github.com/express42/reddit.git dest=/home/appuser/reddit'
+```
+## Напишем простой плейбук
+```
+---
+- name: Clone
+  hosts: app
+  tasks:
+    - name: Clone repo
+      git:
+        repo: https://github.com/express42/reddit.git
+        dest: /home/appuser/reddit
+```
+## Задание**
