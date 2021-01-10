@@ -551,4 +551,4 @@ ansible app -m git -a 'repo=https://github.com/express42/reddit.git dest=/home/a
         repo: https://github.com/express42/reddit.git
         dest: /home/appuser/reddit
 ```
-## Задание**
+И выполните: `ansible-playbook clone.yml`
