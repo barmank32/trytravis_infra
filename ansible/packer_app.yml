@@ -1,0 +1,13 @@
+---
+- name: Configure app
+  hosts: all
+  become : true
+  tasks:
+    - name: Install app
+      apt:
+        name:
+          - ruby-full
+          - ruby-bundler
+          - build-essential
+        state: present
+        update_cache: yes
