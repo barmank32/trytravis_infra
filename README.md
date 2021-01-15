@@ -552,3 +552,158 @@ ansible app -m git -a 'repo=https://github.com/express42/reddit.git dest=/home/a
         dest: /home/appuser/reddit
 ```
 И выполните: `ansible-playbook clone.yml`
+# ДЗ № 9
+## Один playbook, один сценарий
+Создадим плейбук таким образом, чтобы получился один play c множеством tasks с tags.
+```
+---
+- name: Configure hosts & deploy application
+  hosts: all
+  vars:
+    mongo_bind_ip: 0.0.0.0
+    db_host: 10.130.0.6
+  tasks:
+    - name: Change mongo config file
+      become : true
+      template:
+        src : templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: 0644
+      tags: db-tags
+      notify: restart mongod
+
+    - name: APT Install
+      become : true
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+      tags: deploy-tag
+
+    - name: Add unit file for Puma
+      become : true
+      copy:
+        src: files/puma.service
+        dest: /etc/systemd/system/puma.service
+      tags: app-tag
+      notify: reload puma
+...
+  handlers:
+  - name: restart mongod
+    become : true
+    service: name=mongod state=restarted
+  - name: reload puma
+    become : true
+    service: name=puma state=restarted
+```
+чтобы работать с таким playbook необходимы команды следующего вида:
+```
+$ ansible-playbook reddit_app.yml --limit db --tags db-tag
+$ ansible-playbook reddit_app.yml --limit app --tags app-tag
+$ ansible-playbook reddit_app.yml --limit app --tags deploy-tag
+```
+также можно использовать ключ `--check` для выполнения сценария без его применения.
+## Один плейбук, несколько сценариев
+Создадим плейбук таким образом, чтобы получился несколько play.
+```
+---
+- name: Configure MongoDB
+  hosts: db
+  become : true
+  tags: db-tag
+  vars:
+    mongo_bind_ip: 0.0.0.0
+  tasks:
+    - name: Change mongo config file
+      template:
+        src : templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: 0644
+      notify: restart mongod
+
+  handlers:
+  - name: restart mongod
+    service: name=mongod state=restarted
+
+- name: Configure app
+  hosts: app
+  become : true
+  tags: app-tag
+  vars:
+   db_host: 10.130.0.33
+  tasks:
+    - name: Add unit file for Puma
+      copy:
+        src: files/puma.service
+        dest: /etc/systemd/system/puma.service
+      notify: reload puma
+
+    - name: Add config for DB connection
+      template:
+        src: templates/db_config.j2
+        dest: /home/ubuntu/db_config
+        owner: ubuntu
+        group: ubuntu
+
+    - name: enable puma
+      systemd: name=puma enabled=yes
+
+  handlers:
+  - name: reload puma
+    systemd: name=puma state=restarted
+
+- name: deploy application
+  hosts: app
+  tags: deploy-tag
+  tasks:
+    - name: APT Install
+      become : true
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+
+    - name: Fetch the latest version of application code
+      git:
+        repo: https://github.com/express42/reddit.git
+        dest: /home/ubuntu/reddit
+        version: monolith
+      notify: reload puma
+
+    - name: Bundle install
+      bundler:
+        state: present
+        chdir: /home/ubuntu/reddit
+
+  handlers:
+  - name: reload puma
+    become : true
+    systemd: name=puma state=restarted
+```
+чтобы работать с таким playbook необходимы команды следующего вида:
+```
+$ ansible-playbook reddit_app2.yml --tags db-tag
+$ ansible-playbook reddit_app2.yml --tags app-tag
+$ ansible-playbook reddit_app2.yml --tags deploy-tag
+```
+В таком виде playbook проще управлять, так как не надо запоминать к какой групп серверов относится тег.
+## Несколько плейбуков
+Разделим предыдущий playbook и занесем каждый play в отдельный файл.<br>
+Создадим еще один файл с import_playbook.
+```
+---
+- import_playbook: db.yml
+- import_playbook: app.yml
+- import_playbook: deploy.yml
+```
+теперь можно одним файлом запустить все сценарии.
+## Интегрируем Ansible в Packer
+Заменим секцию Provision в Packer на Ansible:
+```
+    "provisioners": [
+        {
+            "type": "ansible",
+            "playbook_file": "ansible/packer_app.yml"
+        }
+    ]
+```
