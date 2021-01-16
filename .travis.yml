@@ -8,18 +8,19 @@ before_install:
 jobs:
   include:
     - stage: Always
+      if: branch != master AND type=push
       script:
         - echo "Running job"
     - stage: Tests PR
-      if: type IN (pull_request)
-      install:
-        - pip install ansible-lint
-        - wget https://releases.hashicorp.com/terraform/0.12.25/terraform_0.12.25_linux_amd64.zip
-        - wget https://releases.hashicorp.com/packer/1.6.6/packer_1.6.6_linux_amd64.zip
-        - sudo unzip -o terraform_0.12.25_linux_amd64.zip -d /usr/local/bin/
-        - sudo unzip -o packer_1.6.6_linux_amd64.zip -d /usr/local/bin/
-        - rm *.zip
-        - sudo curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      if: (branch = master AND type=push) OR type = pull_request
+      #install:
+        # - pip install ansible-lint
+        # - wget https://releases.hashicorp.com/terraform/0.12.25/terraform_0.12.25_linux_amd64.zip
+        #- wget https://releases.hashicorp.com/packer/1.6.6/packer_1.6.6_linux_amd64.zip
+        # - sudo unzip -o terraform_0.12.25_linux_amd64.zip -d /usr/local/bin/
+        #- sudo unzip -o packer_1.6.6_linux_amd64.zip -d /usr/local/bin/
+        #- rm *.zip
+        # - sudo curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       script:
         - packer validate -var-file=packer/variables.json.example packer/app.json
         - packer validate -var-file=packer/variables.json.example packer/db.json
@@ -32,6 +33,13 @@ jobs:
         - tflint terraform/stage
         - tflint terraform/prod
         - ansible-lint ansible/playbooks/*.yml
+      addons:
+        apt:
+          sources:
+            - "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            key_url: "https://apt.releases.hashicorp.com/gpg"
+          packages:
+          - packer
 
 notifications:
   email: false
