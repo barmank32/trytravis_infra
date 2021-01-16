@@ -707,3 +707,5 @@ $ ansible-playbook reddit_app2.yml --tags deploy-tag
         }
     ]
 ```
+# ДЗ № 10
+[![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=ansible-3)](https://travis-ci.com/barmank32/trytravis_infra)
