@@ -27,6 +27,7 @@
       copy:
         src: files/puma.service
         dest: /etc/systemd/system/puma.service
+        mode: 0644
       tags: app-tag
       notify: reload puma
 
@@ -37,6 +38,7 @@
         dest: /home/ubuntu/db_config
         owner: ubuntu
         group: ubuntu
+        mode: 0644
       tags: app-tag
 
     - name: enable puma
