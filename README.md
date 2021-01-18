@@ -1,5 +1,7 @@
+Trytravis [![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=master)](https://travis-ci.com/barmank32/trytravis_infra)
 # barmank32_infra
 barmank32 Infra repository
+
 # ДЗ № 3 стр 12
 Для подключения к удаленному серверу через Bastion необходимо ввести, при этом SSH Agent Forwarding ненужен.
 ```bash
@@ -707,3 +709,77 @@ $ ansible-playbook reddit_app2.yml --tags deploy-tag
         }
     ]
 ```
+# ДЗ № 10
+## Ansible Roles
+`ansible-galaxy init` создает структуру роли в соответствии с принятым форматом.<br>
+Создадим папку `roles` и выполним в ней команду
+```
+$ ansible-galaxy init app
+$ ansible-galaxy init db
+ ```
+Создастся структура для будущих ролей
+- `tasks/main.yml` - файл для таков роли
+- `defaults/main.yml` - файл для дефолтных переменных роли
+- `files/` - папка для файлов
+- `templates/` - папка для шаблонов
+- `handlers/main.yml` - файл для хендлов
+Вызов роли производиться записью
+```
+roles:
+  -db
+ ```
+## Окружения
+Окружение для плейбука находится в папке `environments` в этой папке можно хранить
+`group_vars\` - папка для переменных группы.
+## Ansible Galaxy Community
+Создадим файл с зависимостями `requirements.yml` и расположим в папке `environments`.<br>
+Установил роль
+```
+$ ansible-galaxy install -r environments/stage/requirements.yml
+```
+## Ansible Vault
+1. Создадим файл `vault.key` с произвольной строкой ключа.
+2. Добавим в `ansible.cfg` опцию `vault_password_file = vault.key`
+3. Обязательно добавим `.gitignore` файл `vault.key`
+4. Создадим файл `credentials.yml` с секретными данными и расположим в папке `environments`.
+5. Зашифруем файл используя ключ-файл vault.key.
+```
+$ ansible-vault encrypt environments/prod/credentials.ym
+```
+## Задание** Настройка TravisCI
+```
+jobs:
+  include:
+    - stage: Always
+      if: branch != master AND type=push
+      script:
+        - echo "Running job"
+    - stage: Tests PR
+      language: python
+      python: 3.6
+      if: (branch = master AND type=push) OR type = pull_request
+      install:
+      - pip install ansible-lint
+      - wget https://releases.hashicorp.com/terraform/0.12.25/terraform_0.12.25_linux_amd64.zip
+      - wget https://releases.hashicorp.com/packer/1.6.6/packer_1.6.6_linux_amd64.zip
+      - sudo unzip -o terraform_0.12.25_linux_amd64.zip -d /usr/local/bin/
+      - sudo unzip -o packer_1.6.6_linux_amd64.zip -d /usr/local/bin/
+      - rm *.zip
+      - sudo curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      script:
+        - packer validate -var-file=packer/variables.json.example packer/app.json
+        - packer validate -var-file=packer/variables.json.example packer/db.json
+        - packer validate -var-file=packer/variables.json.example packer/immutable.json
+        - packer validate -var-file=packer/variables.json.example packer/ubuntu16.json
+        - terraform init terraform/stage
+        - terraform validate terraform/stage
+        - terraform init terraform/prod
+        - terraform validate terraform/prod
+        - tflint terraform/stage
+        - tflint terraform/prod
+        - ansible-lint ansible/playbooks/*.yml
+```
+1. Произведена установка недостающих инструментов, секция install.
+2. Добавлены проверки, секция script.
+3. TFLint предназначен для провайдеров (AWS/Azure/GCP) для YC не может быть использован.
+4. Добавлен бейдж с статусом билда. [![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=master)](https://travis-ci.com/barmank32/trytravis_infra)
