@@ -10,7 +10,7 @@ Group=ubuntu
 WorkingDirectory=/home/ubuntu/reddit
 ExecStart=/usr/local/bin/puma
 
-Environment="DATABASE_URL=84.201.174.57"
+Environment="DATABASE_URL=178.154.254.39"
 
 TimeoutSec=15
 Restart=always
