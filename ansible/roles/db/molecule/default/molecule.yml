@@ -13,4 +13,4 @@ provisioner:
   lint:
     name: ansible-lint
 verifier:
-  name: ansible
+  name: testinfra
