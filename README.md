@@ -785,8 +785,6 @@ jobs:
 4. Добавлен бейдж с статусом билда. [![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=master)](https://travis-ci.com/barmank32/trytravis_infra)
 # ДЗ № 11
 [![Build Status](https://travis-ci.com/barmank32/otus-db-roles.svg?branch=main)](https://travis-ci.com/barmank32/otus-db-roles)
-
-[![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=ansible-4)](https://travis-ci.com/barmank32/trytravis_infra)
 ## Vagrant
 Настройка находиться в Vagrantfile.
 ```
@@ -875,6 +873,7 @@ verifier:
 - `molecule destroy` - удалить инстанс
 - `molecule test` - запустить последовательность create, converge, verify, destroy
 ## Задание*
+[![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=ansible-4)](https://travis-ci.com/barmank32/trytravis_infra)
 - https://github.com/barmank32/otus-db-roles
 - подключил Travis CI. Для тестов пришлось собрать docker image с systemd и python3
 ```
