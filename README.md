@@ -783,3 +783,120 @@ jobs:
 2. Добавлены проверки, секция script.
 3. TFLint предназначен для провайдеров (AWS/Azure/GCP) для YC не может быть использован.
 4. Добавлен бейдж с статусом билда. [![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=master)](https://travis-ci.com/barmank32/trytravis_infra)
+# ДЗ № 11
+[![Build Status](https://travis-ci.com/barmank32/otus-db-roles.svg?branch=main)](https://travis-ci.com/barmank32/otus-db-roles)
+
+[![Build Status](https://travis-ci.com/barmank32/trytravis_infra.svg?branch=ansible-4)](https://travis-ci.com/barmank32/trytravis_infra)
+## Vagrant
+Настройка находиться в Vagrantfile.
+```
+Vagrant.configure("2") do |config|
+
+  config.vm.provider :virtualbox do |v|
+    v.memory = 512
+  end
+
+  config.vm.define "dbserver" do |db|
+    db.vm.box = "ubuntu/xenial64"
+    db.vm.hostname = "dbserver"
+    db.vm.network :private_network, ip: "10.10.10.10"
+
+    db.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbooks/site.yml"
+      ansible.groups = {
+      "db" => ["dbserver"],
+      "db:vars" => {"mongo_bind_ip" => "0.0.0.0"}
+      }
+    end
+  end
+
+  config.vm.define "appserver" do |app|
+    app.vm.box = "ubuntu/xenial64"
+    app.vm.hostname = "appserver"
+    app.vm.network :private_network, ip: "10.10.10.20"
+
+    app.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbooks/site.yml"
+      ansible.groups = {
+      "app" => ["appserver"],
+      "app:vars" => { "db_host" => "10.10.10.10"}
+      }
+      ansible.extra_vars = {
+          "deploy_user": "vagrant",
+          "nginx_sites": {
+            "default": [
+              "listen 80",
+              "server_name \"reddit\"",
+              "location / { proxy_pass http://127.0.0.1:9292; }"
+            ]
+          }
+        }
+    end
+  end
+end
+```
+Команды Vagrant
+- `vagrant up` - Запуск ВМ
+- `vagrant box list` - Скаченные боксы
+- `vagrant status` - Статус ВМ
+- `vagrant ssh appserver` - Подключиться к ВМ
+- `vagrant provision dbserver` - Запустить секцию procision на ВМ
+- `vagrant destroy -f` - Удалить ВМ без подтверждения
+## Molecule
+Создадим заготовки тестов для роли, выполнив команду ниже в директории с ролью.
+```
+$ molecule init scenario -r db -d vagrant
+```
+приведем следующий файл к виду
+```
+# molecule.yml
+---
+dependency:
+  name: galaxy
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+platforms:
+  - name: instance
+    box: ubuntu/xenial64
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+verifier:
+  name: testinfra
+```
+- `molecule create` - создает инстанс для теста
+- `molecule list` - просмотреть созданный инстанс
+- `molecule login -h instance` - подключиться к инстансу
+- `molecule converge` - запустить роль в инстансе
+- `molecule verify` - запустить тесты
+- `molecule destroy` - удалить инстанс
+- `molecule test` - запустить последовательность create, converge, verify, destroy
+## Задание*
+- https://github.com/barmank32/otus-db-roles
+- подключил Travis CI. Для тестов пришлось собрать docker image с systemd и python3
+```
+---
+language: python
+python: "3.6"
+
+services:
+  - docker
+
+install:
+  - pip install ansible>=2.4 molecule>=2.6 pytest-testinfra molecule-docker
+
+script:
+  - molecule --version
+  - ansible --version
+  - molecule test
+
+notifications:
+  email: false
+  slack:
+    rooms:
+      - secure: H2MYCea3VVSxnCLWV/O30q/HpwvSyMpBRR6Q6YUFau6DzU0cnWzuGuVPB2aDUAuCIadYK4eSv+lUMkAzB2OAHyiBcxJMJY/CRRuvAspvmWbatAIrdhtRR4ZRiBIHttNHKjODMmYvhOmHAK6n+P3Mo3D6Xtdopsma7j+7frzGylPTBWmbJrEUfOUB3IsOWSfp0rg7SCUJ7Jx/SiGu7bvisX5vdHshAYQJ2LTiO3nGqRpcd19LC1Z0Lehp+mkMUaIS/EamIgLmdHCVq2/Dj0nLva3b3Y/zk9rWpSa+ACF/6z8najTTpDAboOhWIZOB0czd4kS+OGPvYNxrvGgJme+nSgnbA2sXBWdLW8EsCY4NnLYNmWaP7XrnASKIjlXjsCz1YAMUbMnaB7eKuEsKYtljvCfgMIan559QjKTK5NPqRsXQafpuU4xA6JgYJA6ycrvdkpUekUtGFRleh3Sfxd9OsJDGGKLZycdRxUAoZPpW2rXmbO3bEiCiyo6z0gn6YVtJcWkhrlGtqRnTdD2rsIHNPnOnmDAZzhmlora6f6Tbf+THfjzTR0Ay8McBr2UudQ8nEwPfWQAZTTuRjgWTleF6RD+PZXw6vqGvTG2HG1teoEqNdO4Vb2THVEFRBwBdPod6vJTK78TyffMA6GCz1fe4TXcHUpyRGF9wAFb6NWXTNRc=
+```
+- Оповещение настроить не удалось :(. По какой то причине не приходят оповещения даже на другой workspace слака.
