@@ -1,43 +1,41 @@
 dist: xenial
-sudo: required
 language: bash
-
 before_install:
-- curl https://raw.githubusercontent.com/express42/otus-homeworks/2020-11/run.sh | bash
-
+- curl https://raw.githubusercontent.com/express42/otus-homeworks/2020-11/run.sh |
+  bash
 jobs:
   include:
-    - stage: Always
-      if: branch != master AND type=push
-      script:
-        - echo "Running job"
-    - stage: Tests PR
-      language: python
-      python: 3.6
-      if: (branch = master AND type=push) OR type = pull_request
-      install:
-      - pip install ansible-lint
-      - wget https://releases.hashicorp.com/terraform/0.12.25/terraform_0.12.25_linux_amd64.zip
-      - wget https://releases.hashicorp.com/packer/1.6.6/packer_1.6.6_linux_amd64.zip
-      - sudo unzip -o terraform_0.12.25_linux_amd64.zip -d /usr/local/bin/
-      - sudo unzip -o packer_1.6.6_linux_amd64.zip -d /usr/local/bin/
-      - rm *.zip
-      - sudo curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-      script:
-        - packer validate -var-file=packer/variables.json.example packer/app.json
-        - packer validate -var-file=packer/variables.json.example packer/db.json
-        - packer validate -var-file=packer/variables.json.example packer/immutable.json
-        - packer validate -var-file=packer/variables.json.example packer/ubuntu16.json
-        - terraform init terraform/stage
-        - terraform validate terraform/stage
-        - terraform init terraform/prod
-        - terraform validate terraform/prod
-        - tflint terraform/stage
-        - tflint terraform/prod
-        - ansible-lint ansible/playbooks/*.yml
-
+  - stage: Always
+    if: branch != master AND type=push
+    script:
+    - echo "Running job"
+  - stage: Tests PR
+    language: python
+    python: 3.6
+    if: "(branch = master AND type=push) OR type = pull_request"
+    install:
+    - pip install ansible-lint
+    - wget https://releases.hashicorp.com/terraform/0.12.25/terraform_0.12.25_linux_amd64.zip
+    - wget https://releases.hashicorp.com/packer/1.6.6/packer_1.6.6_linux_amd64.zip
+    - sudo unzip -o terraform_0.12.25_linux_amd64.zip -d /usr/local/bin/
+    - sudo unzip -o packer_1.6.6_linux_amd64.zip -d /usr/local/bin/
+    - rm *.zip
+    - sudo curl https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+    script:
+    - packer validate -var-file=packer/variables.json.example packer/app.json
+    - packer validate -var-file=packer/variables.json.example packer/db.json
+    - packer validate -var-file=packer/variables.json.example packer/immutable.json
+    - packer validate -var-file=packer/variables.json.example packer/ubuntu16.json
+    - terraform init terraform/stage
+    - terraform validate terraform/stage
+    - terraform init terraform/prod
+    - terraform validate terraform/prod
+    - tflint terraform/stage
+    - tflint terraform/prod
+    - ansible-lint ansible/playbooks/*.yml
 notifications:
   email: false
   slack:
-    rooms:
-      - secure: PIsWcgodAdJSSTunVdIl2U2zXz+gJFvF4X4K8fMdZrd0vlvK7XtVHya2CLFZVa3q2Ao3fysl9ivau1bBZOCXZDaCKnaNJcCW1ler4wn9qaeAowRq2TCJZbg8MeIzP37b6+4x6SaVNYov0SNuBiXCN5W0GKzTmYT5GfFHPTG5LTNtssIeLjQ7RZwSx8YBv11aTmzV+dqD91L/z2d9526BdNAXjmqSDkwlwSUw+IdsHzsJkzJBgVsOhCTUNZpwOS0/oeL9e4uDxrPQNijaV9zhEN8qnNyUdtHvyHrXQS9rW1wbX3nlJwY7SpyFGEeTt21atTl6+qEOkZyQwwwgJs2nsesb++XabeHhzxlC1ZZholglZiLig9v2EuN3/YELqSw89Y7t8ucJDsXXJaJ5FvvCngUMboRxUBXDmNtlqG2qu5HHkmVwA6OlGHRcchQD9cD9+iXdv8ux/35Nyq4XzlwKcwjOLpKXzYapwkp8XMqo869klaq7gT3LRsAh9Z3gvnnGqjF25mK0/zBZyM5SKeTL07IyRtI+wqDgPaZY93T1m+UtffXCmUYTJqYTGgJ7ITTICz3r3XQd+p+lRrsCIkQC8twCi3Cn34r3TcCtm5uaFW6j7hPM2hlYT8gglJ4/N8eIv0coD1GQHaCevDmqUGxutLpzal/mdQOabIzx2ZSIoB4=
+    secure: WqIeI72avnqvXXwYRaO/TuTl0Mzwyy/3pUqy7in2E+75LhcrSLHzyFmz2QoIkCLv5h9vA7zLmhv6d5Chy+GAF9QKvZqMQI6i2fqs4lNVA+cgNR88kdSXHfUNXH8tJhAJHW3jxL19SViQE+e0vMy/YhlNdzVNZYz4FJGWpqRDGwmj14iSvbegxfDPoIwlq+xr3pDbjXQ5asVLuSxPakJPsx+es+kwag28+54LliNUaX+TTr2U2RgTDx1A+pT9glCNqcQTx6h5mrfBh5b7ArwndZtPvjzIcWq7VxwlD945FrvxN4Ec0+GgVSuJDIezPwU1Jl4/q0dlJX1QyyCaT17XcOmbAsB1ZYN7XQt9xQzPGhQjLwx9DSLu1yikOxBvcHR8s/L1agZi3XrnJReQ+laDuAsVdDEMdEC3QvJbA4gY+p3mQeuILZvzMCbik1UE/STtaXOAG+skg7ttcLK+J3P7C7WmrI+k2gmw1s6XD0YmjTVTraksTulYObo/0kzHQxapGkonK70CbEBwkqNJPGcsi4IBRi8F3hzuxqlm1D/PYZRotft6bWtldDcSSfF72+ymhLWRAbck00GoV5oO6L8xRSUu0YE3J/rsPuv+HyQiQhVfD4GDN0wdJVsSCEgi9tXkiu/gqzWgn5YgQit7WeX4vqFYugQ1q10ZqrBRkRXq0qA=
+    on_success: always
+    on_failure: always
